@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 import requests
+from normalize import normalize_posting
 
 load_dotenv()
 
@@ -18,6 +19,26 @@ params = {
 }
 
 response = requests.get(url, params=params)
+data = response.json()
 
-print("Status code:", response.status_code)
-print(response.json())
+raw_jobs = data["results"]
+
+cleaned_jobs = []
+for job in raw_jobs:
+    cleaned = normalize_posting(job)
+    cleaned_jobs.append(cleaned)
+
+for job in cleaned_jobs:
+    print(job)
+    print("---")
+
+
+import json
+import os
+
+os.makedirs("data/raw", exist_ok=True)
+with open("data/raw/normalized_postings.jsonl", "a", encoding="utf-8") as f:
+    for job in cleaned_jobs:
+        f.write(json.dumps(job) + "\n")
+
+print(f"Saved {len(cleaned_jobs)} jobs to data/raw/normalized_postings.jsonl")
