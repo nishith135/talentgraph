@@ -29,3 +29,14 @@ def upsert_posting(posting: dict) -> dict:
     except Exception as e:
         print(f"Error upserting posting {posting.get('external_id')}: {e}")
         return None
+
+def update_posting_seniority(posting_id: int, seniority: str, confidence: float) -> dict:
+    """
+    Updates a posting with its extracted seniority level.
+    """
+    response = supabase.table("job_postings").update({
+        "extracted_seniority": seniority,
+        "seniority_confidence": confidence
+    }).eq("id", posting_id).execute()
+    
+    return response.data[0] if response.data else None
