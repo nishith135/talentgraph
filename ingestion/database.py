@@ -40,3 +40,20 @@ def update_posting_seniority(posting_id: int, seniority: str, confidence: float)
     }).eq("id", posting_id).execute()
     
     return response.data[0] if response.data else None
+    
+def update_posting_skills(posting_id: int, skills: dict) -> dict:
+    """
+    Updates a posting with extracted skills.
+    skills is a dict like {"backend": ["python", "django"], "devops": ["docker"]}
+    """
+    # Flatten all skills into one list
+    all_skills = []
+    for category, skill_list in skills.items():
+        all_skills.extend(skill_list)
+    
+    response = supabase.table("job_postings").update({
+        "extracted_skills": all_skills,
+        "skills_categories": str(skills)  # Save as JSON string
+    }).eq("id", posting_id).execute()
+    
+    return response.data[0] if response.data else None

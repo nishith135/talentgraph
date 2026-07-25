@@ -1,4 +1,4 @@
-from skill_list import SKILL_TAXONOMY
+from extraction.skill_list import SKILL_TAXONOMY
 
 def extract_skills_keyword_matching(text: str) -> dict:
     """
