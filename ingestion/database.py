@@ -40,7 +40,7 @@ def update_posting_seniority(posting_id: int, seniority: str, confidence: float)
     }).eq("id", posting_id).execute()
     
     return response.data[0] if response.data else None
-    
+
 def update_posting_skills(posting_id: int, skills: dict) -> dict:
     """
     Updates a posting with extracted skills.
@@ -56,4 +56,17 @@ def update_posting_skills(posting_id: int, skills: dict) -> dict:
         "skills_categories": str(skills)  # Save as JSON string
     }).eq("id", posting_id).execute()
     
+    return response.data[0] if response.data else None
+
+def save_extraction(extraction) -> dict:
+    """
+    Takes a validated JobExtraction object and saves it to database.
+    """
+    response = supabase.table("job_postings").update({
+        "extracted_seniority": extraction.seniority,
+        "seniority_confidence": extraction.seniority_confidence,
+        "extracted_skills": extraction.skills,
+        "skills_categories": str(extraction.skills_by_category)
+    }).eq("id", extraction.posting_id).execute()
+
     return response.data[0] if response.data else None
