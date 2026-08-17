@@ -1,7 +1,7 @@
 SKILL_TAXONOMY = {
     "backend": [
-        "python", "java", "nodejs", "go", "rust", "c++", "c#", ".net",
-        "django", "fastapi", "flask", "spring", "express", "gin", "rails",
+        "python", "java", "nodejs", "rust", "c++", "c#", ".net",
+        "django", "fastapi", "flask", "spring", "express", "rails",
         "laravel", "php", "ruby", "kotlin",
         "postgresql", "mysql", "mongodb", "redis", "cassandra", "elasticsearch",
         "oracle", "sql server", "firebase",
@@ -63,16 +63,16 @@ SKILL_TAXONOMY = {
     ],
     "data_engineer": [
         "python", "sql", "spark", "hadoop", "kafka", "airflow",
-        "data warehouse", "ETL", "dbt", "data modeling",
+        "data warehouse", "etl", "dbt", "data modeling",
         "snowflake", "redshift", "bigquery", "data pipeline"
     ],
     "data_scientist": [
-        "python", "sql", "r", "scikit-learn", "pandas", "numpy",
+        "python", "sql", "scikit-learn", "pandas", "numpy",
         "machine learning", "statistical modeling", "hypothesis testing",
         "visualization", "tableau", "powerbi", "mlops"
     ],
     "software_engineer": [
-        "python", "java", "javascript", "typescript", "go", "rust",
+        "python", "java", "javascript", "typescript", "golang", "rust",
         "c++", "c#", "nodejs", "react", "angular", "vue",
         "microservices", "rest api", "graphql", "aws", "gcp", "azure",
         "docker", "kubernetes", "ci/cd"
@@ -87,19 +87,7 @@ SKILL_TAXONOMY = {
         "defi", "crypto", "web3.js", "ganache", "truffle"
     ],
     "embedded": [
-        "c", "c++", "microcontrollers", "rtos", "arm", "embedded systems",
-        "linux kernel", "device drivers", "iot"
-    ],
-    "game": [
-        "unity", "unreal engine", "c#", "c++", "game development",
-        "blender", "asset creation", "physics", "gamedesign"
-    ],
-    "blockchain": [
-        "solidity", "ethereum", "web3", "blockchain", "smart contracts",
-        "defi", "crypto", "web3.js", "ganache", "truffle"
-    ],
-    "embedded": [
-        "c", "c++", "microcontrollers", "rtos", "arm", "embedded systems",
+        "c++", "microcontrollers", "rtos", "arm", "embedded systems",
         "linux kernel", "device drivers", "iot"
     ],
     "game": [
