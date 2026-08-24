@@ -1,25 +1,25 @@
 from langgraph.graph import StateGraph, END
 from agents.state import TalentGraphState
 from agents.intake_agent import intake_agent
+from agents.retrieval_agent import retrieval_agent
 
 
 def build_graph():
     """
     Builds and compiles the TalentGraph agent graph.
-    Currently only has the Intake Agent wired in.
-    More agents will be added Day by Day.
+    Week 3 Day 2: Intake + Retrieval wired in.
     """
 
     graph = StateGraph(TalentGraphState)
 
     # Add nodes
     graph.add_node("intake", intake_agent)
+    graph.add_node("retrieval", retrieval_agent)
 
-    # Set entry point
+    # Define edges
     graph.set_entry_point("intake")
-
-    # For now, intake goes straight to END
-    graph.add_edge("intake", END)
+    graph.add_edge("intake", "retrieval")
+    graph.add_edge("retrieval", END)
 
     return graph.compile()
 
@@ -27,7 +27,6 @@ def build_graph():
 if __name__ == "__main__":
     app = build_graph()
 
-    # Test run
     initial_state = {
         "user_query": "find me junior Python developer roles in Bangalore with Django",
         "resume_path": "data/NISHITH_KASHIMALLA_CV.pdf",
@@ -45,3 +44,9 @@ if __name__ == "__main__":
 
     print("\n[ RESULT ]")
     print(f"  Filters: {result['filters']}")
+    print(f"  Jobs retrieved: {len(result['retrieved_jobs'] or [])} jobs")
+
+    for i, job in enumerate(result["retrieved_jobs"] or [], 1):
+        print(f"\n  #{i} — {job['title']} at {job.get('company', 'N/A')}")
+        print(f"       Seniority : {job.get('extracted_seniority', 'N/A')}")
+        print(f"       Match     : {round(1 - job['distance'], 4)}")
