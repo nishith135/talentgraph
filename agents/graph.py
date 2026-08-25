@@ -4,35 +4,42 @@ from agents.intake_agent import intake_agent
 from agents.retrieval_agent import retrieval_agent
 from agents.analysis_agent import analysis_agent
 from agents.critique_agent import critique_agent, should_retry
+from agents.response_agent import response_agent
 
 
 def build_graph():
     """
-    Builds and compiles the TalentGraph agent graph.
-    Week 3 Day 4: Critique Agent + conditional retry loop added.
+    Complete TalentGraph agent graph.
+    Week 3 Day 5: All 5 agents wired in with critique loop.
+
+    Flow:
+    intake → retrieval → analysis → critique → response
+                  ↑______________|  (if critique fails)
     """
 
     graph = StateGraph(TalentGraphState)
 
-    # Add nodes
+    # Add all nodes
     graph.add_node("intake", intake_agent)
     graph.add_node("retrieval", retrieval_agent)
     graph.add_node("analysis", analysis_agent)
     graph.add_node("critique", critique_agent)
+    graph.add_node("response", response_agent)
 
-    # Define fixed edges
+    # Fixed edges
     graph.set_entry_point("intake")
     graph.add_edge("intake", "retrieval")
     graph.add_edge("retrieval", "analysis")
     graph.add_edge("analysis", "critique")
+    graph.add_edge("response", END)
 
-    # Conditional edge — critique decides what happens next
+    # Conditional edge — critique routes to response or loops to retrieval
     graph.add_conditional_edges(
         "critique",
         should_retry,
         {
             "retrieval": "retrieval",
-            "response": END          # Response Agent goes here on Day 5
+            "response": "response"
         }
     )
 
@@ -56,9 +63,3 @@ if __name__ == "__main__":
 
     print("\nRunning TalentGraph agent graph...")
     result = app.invoke(initial_state)
-
-    print("\n[ RESULT ]")
-    print(f"  Critique passed  : {result['critique_passed']}")
-    print(f"  Critique feedback: {result['critique_feedback']}")
-    print(f"  Retry count      : {result['retry_count']}")
-    print(f"  Jobs analyzed    : {result['gap_analysis']['total_jobs_analyzed']}")
