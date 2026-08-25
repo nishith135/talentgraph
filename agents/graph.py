@@ -2,12 +2,13 @@ from langgraph.graph import StateGraph, END
 from agents.state import TalentGraphState
 from agents.intake_agent import intake_agent
 from agents.retrieval_agent import retrieval_agent
+from agents.analysis_agent import analysis_agent
 
 
 def build_graph():
     """
     Builds and compiles the TalentGraph agent graph.
-    Week 3 Day 2: Intake + Retrieval wired in.
+    Week 3 Day 3: Intake + Retrieval + Analysis wired in.
     """
 
     graph = StateGraph(TalentGraphState)
@@ -15,11 +16,13 @@ def build_graph():
     # Add nodes
     graph.add_node("intake", intake_agent)
     graph.add_node("retrieval", retrieval_agent)
+    graph.add_node("analysis", analysis_agent)
 
     # Define edges
     graph.set_entry_point("intake")
     graph.add_edge("intake", "retrieval")
-    graph.add_edge("retrieval", END)
+    graph.add_edge("retrieval", "analysis")
+    graph.add_edge("analysis", END)
 
     return graph.compile()
 
@@ -43,10 +46,12 @@ if __name__ == "__main__":
     result = app.invoke(initial_state)
 
     print("\n[ RESULT ]")
-    print(f"  Filters: {result['filters']}")
-    print(f"  Jobs retrieved: {len(result['retrieved_jobs'] or [])} jobs")
+    print(f"  Jobs analyzed  : {result['gap_analysis']['total_jobs_analyzed']}")
+    print(f"  Missing skills : {result['gap_analysis']['missing_skills_summary']}")
+    print(f"\n  Per job breakdown:")
 
-    for i, job in enumerate(result["retrieved_jobs"] or [], 1):
-        print(f"\n  #{i} — {job['title']} at {job.get('company', 'N/A')}")
-        print(f"       Seniority : {job.get('extracted_seniority', 'N/A')}")
-        print(f"       Match     : {round(1 - job['distance'], 4)}")
+    for job in result["gap_analysis"]["per_job"]:
+        print(f"\n  — {job['title']} at {job['company']}")
+        print(f"    Match score : {job['match_score']}")
+        print(f"    You have    : {job['skills_matched'] or 'none matched'}")
+        print(f"    You're missing: {job['skills_missing'] or 'none'}")
