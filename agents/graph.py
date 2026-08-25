@@ -3,12 +3,13 @@ from agents.state import TalentGraphState
 from agents.intake_agent import intake_agent
 from agents.retrieval_agent import retrieval_agent
 from agents.analysis_agent import analysis_agent
+from agents.critique_agent import critique_agent, should_retry
 
 
 def build_graph():
     """
     Builds and compiles the TalentGraph agent graph.
-    Week 3 Day 3: Intake + Retrieval + Analysis wired in.
+    Week 3 Day 4: Critique Agent + conditional retry loop added.
     """
 
     graph = StateGraph(TalentGraphState)
@@ -17,12 +18,23 @@ def build_graph():
     graph.add_node("intake", intake_agent)
     graph.add_node("retrieval", retrieval_agent)
     graph.add_node("analysis", analysis_agent)
+    graph.add_node("critique", critique_agent)
 
-    # Define edges
+    # Define fixed edges
     graph.set_entry_point("intake")
     graph.add_edge("intake", "retrieval")
     graph.add_edge("retrieval", "analysis")
-    graph.add_edge("analysis", END)
+    graph.add_edge("analysis", "critique")
+
+    # Conditional edge — critique decides what happens next
+    graph.add_conditional_edges(
+        "critique",
+        should_retry,
+        {
+            "retrieval": "retrieval",
+            "response": END          # Response Agent goes here on Day 5
+        }
+    )
 
     return graph.compile()
 
@@ -46,12 +58,7 @@ if __name__ == "__main__":
     result = app.invoke(initial_state)
 
     print("\n[ RESULT ]")
-    print(f"  Jobs analyzed  : {result['gap_analysis']['total_jobs_analyzed']}")
-    print(f"  Missing skills : {result['gap_analysis']['missing_skills_summary']}")
-    print(f"\n  Per job breakdown:")
-
-    for job in result["gap_analysis"]["per_job"]:
-        print(f"\n  — {job['title']} at {job['company']}")
-        print(f"    Match score : {job['match_score']}")
-        print(f"    You have    : {job['skills_matched'] or 'none matched'}")
-        print(f"    You're missing: {job['skills_missing'] or 'none'}")
+    print(f"  Critique passed  : {result['critique_passed']}")
+    print(f"  Critique feedback: {result['critique_feedback']}")
+    print(f"  Retry count      : {result['retry_count']}")
+    print(f"  Jobs analyzed    : {result['gap_analysis']['total_jobs_analyzed']}")
