@@ -5,6 +5,7 @@ from agents.retrieval_agent import retrieval_agent
 from agents.analysis_agent import analysis_agent
 from agents.critique_agent import critique_agent, should_retry
 from agents.response_agent import response_agent
+import sys
 
 
 def build_graph():
@@ -49,8 +50,12 @@ def build_graph():
 if __name__ == "__main__":
     app = build_graph()
 
+    # Accept query from command line or use default
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else \
+        "find me junior Python developer roles in Bangalore with Django"
+
     initial_state = {
-        "user_query": "find me junior Python developer roles in Bangalore with Django",
+        "user_query": query,
         "resume_path": "data/NISHITH_KASHIMALLA_CV.pdf",
         "filters": None,
         "retrieved_jobs": None,
@@ -61,5 +66,9 @@ if __name__ == "__main__":
         "final_output": None
     }
 
-    print("\nRunning TalentGraph agent graph...")
+    print(f"\nQuery: '{query}'")
+    print("Running TalentGraph agent graph...\n")
     result = app.invoke(initial_state)
+
+    print(f"\nRetry count : {result['retry_count']}")
+    print(f"Critique    : {result['critique_feedback']}")

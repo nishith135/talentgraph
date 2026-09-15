@@ -266,3 +266,99 @@ Production systems use pragmatic hybrid approaches, not always fancy ML. Faster 
 ### What I learned this week
 - i learned a lot of things about how real prodcution grade systems works, also learned not to do silly mistakes like running the files wihtout saving them first.day 6 and 7 have mainly taught me how to unify scripts so that there will be no individual logging to databases, instead we can run two things at a time and save the output to the db. this will reduce the amount of writes to db in the long run. we have created a single pipleline that will run the entire process from fetching jobs to storing them in the database, and then extracting seniority and skills from the stored jobs. we can simply just change the params in pipeline.py's run_pipeline function, if we change the query to some other job role like'data analyst' and the location string to something else like 'hyderabad' the pipeline will adapt and pulls jobs fro data analyst roles which are located in hyderabad, this shows that our pipeline is flexible and not hardcoded 
 - 
+
+---
+
+## Week 2+: Agent System (LangGraph CLI)
+
+### What we built
+A multi-agent pipeline using LangGraph that takes a user query + a resume PDF and returns ranked job matches with skill gap analysis. Runs from the terminal with a single command.
+
+### How to run it
+
+```powershell
+# Activate venv first (always do this)
+.\venv\Scripts\Activate.ps1
+
+# Then from the talentgraph/ folder:
+python -m agents.cli "find me junior Python developer roles in Bangalore"
+```
+
+---
+
+### Core concepts
+
+**1. A fresh venv is always empty — install deps every time you create one.**
+When you run `python -m venv venv`, you get a brand new isolated Python environment with zero packages. Any packages installed before are gone. This is intentional — isolation is the whole point. Every new venv needs its deps installed fresh.
+
+Two-step pattern, every time:
+
+```powershell
+python -m venv venv              # create it
+.\venv\Scripts\Activate.ps1   # activate it
+pip install -r requirements.txt  # install everything
+```
+
+**2. requirements.txt is the memory of your project dependencies.**
+If it is empty or missing, you are forced to reinstall packages one-by-one every time. Always keep it populated. After installing new packages, update it:
+
+```powershell
+pip freeze > requirements.txt
+```
+
+This saves exact versions of everything currently installed.
+
+**3. Functions and parameters — the real-world click.**
+Today this became concrete. Look at cli.py. When you run:
+
+```powershell
+python -m agents.cli "find me Python roles" myresume.pdf
+```
+
+- "find me Python roles" gets passed as the query
+- myresume.pdf gets passed as the resume_file
+
+The function uses those values to do its work. This is how all functions work:
+- You define what inputs a function needs (parameters)
+- When you call it, you pass in the actual values (arguments)
+- The function uses them to produce a result
+
+Mental model: a function is a machine. Parameters are the input slots. Same machine, different inputs, different outputs.
+
+**4. The myresume.pdf bug — a great first real error.**
+Error message:
+
+```
+FileNotFoundError: Resume not found at data/myresume.pdf
+```
+
+What happened: passing myresume.pdf as a CLI argument told the code to look for that filename inside data/. But only NISHITH_KASHIMALLA_CV.pdf existed there. The code was working exactly as written — you gave it a filename that did not exist on disk.
+
+Fix: do not pass a PDF argument. Let the code use its default:
+
+```powershell
+python -m agents.cli "find me junior Python developer roles in Bangalore"
+```
+
+Lesson: errors are not random. They are the code doing exactly what you told it to do, just not what you meant. Read the traceback top-to-bottom — it tells you exactly where it broke and why.
+
+**5. How the agent pipeline flows.**
+5 agents chained together via LangGraph:
+1. Intake Agent — parses plain English into structured filters (seniority, location, skills)
+2. Retrieval Agent — uses those filters + semantic search to fetch matching jobs from the DB
+3. Analysis Agent — loads the resume PDF, compares your skills against each job requirements
+4. Critique Agent — evaluates whether results are good enough; retries if not
+5. Response Agent — formats and prints the final ranked output with match scores and skill gaps
+
+Each agent is a Python function that takes the current state (a dict) and returns an updated state. LangGraph manages the flow between them.
+
+### Done state
+- LangGraph agent pipeline running end-to-end
+- Resume-based skill gap analysis working
+- CLI accepts custom queries as plain English
+- Returns ranked jobs with match scores, matched skills, and missing skills highlighted
+
+### Mistake log
+- requirements.txt was empty so had to install packages one-by-one. Fixed by populating the file and using pip install -r requirements.txt.
+- Passed myresume.pdf as a CLI arg but the actual file in data/ has a different name. Caused FileNotFoundError. Fix: do not pass a filename, let the code use its default.
+- Created a new venv without realising it would be empty. Lesson: venv creation always means a fresh start with zero packages.
