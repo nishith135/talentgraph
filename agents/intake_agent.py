@@ -54,5 +54,5 @@ def intake_agent(state: TalentGraphState) -> TalentGraphState:
 
     print(f"  Filters extracted: {filters}")
 
-    # Write back to state
-    return {**state, "filters": filters}
+    # Write to both filters (mutable) and original_filters (permanent snapshot)
+    return {**state, "filters": filters, "original_filters": filters}

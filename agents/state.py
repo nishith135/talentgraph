@@ -11,7 +11,9 @@ class TalentGraphState(TypedDict):
     resume_path: str
 
     # Set by the Intake Agent
+    # original_filters is never modified after intake — safe to check in evals
     filters: Optional[dict]
+    original_filters: Optional[dict]
 
     # Set by the Retrieval Agent
     retrieved_jobs: Optional[list]

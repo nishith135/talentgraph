@@ -51,8 +51,10 @@ if __name__ == "__main__":
     app = build_graph()
 
     # Accept query from command line or use default
-    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else \
-        "find me junior Python developer roles in Bangalore with Django"
+    if len(sys.argv) > 1:
+        query = " ".join(sys.argv[1:])
+    else:
+        query = "find me junior Python developer roles in Bangalore with Django"
 
     initial_state = {
         "user_query": query,
