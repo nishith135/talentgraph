@@ -20,7 +20,7 @@ description: TalentGraph project rules — Python/Supabase/LangGraph stack
 ## LangGraph / Agent Graph
 - New agents must follow the existing node pattern (Intake, Retrieval, Analysis, Critique, Response) — same `StateGraph` conventions, same state schema shape, unless a new pattern is discussed first.
 - Always wire new nodes into the graph explicitly (edges + conditional routing) — don't leave orphan nodes.
-- Local model calls go through `ChatOllama` with the Mistral model already configured — don't swap models without asking.
+- LLM calls use local Ollama (`ChatOllama`, defaulting to `qwen2:7b` via `OLLAMA_MODEL` in `.env`), with Google Gemini (`ChatGoogleGenerativeAI`) supported when API quota allows.
 
 ## Communication
 - Be direct. If a request is unclear or the "right" implementation conflicts with what I asked for, say so before writing code — don't silently pick your own interpretation.

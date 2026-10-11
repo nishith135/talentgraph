@@ -1,3 +1,4 @@
+import sys
 from agents.state import TalentGraphState
 
 
@@ -9,6 +10,13 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     """
 
     print("\n[ RESPONSE AGENT ] Formatting final output...")
+
+    # Ensure stdout handles encoding safely on Windows
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
     gap_analysis = state.get("gap_analysis") or {}
     filters = state.get("filters") or {}
@@ -23,7 +31,7 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     # Header
     # -------------------------
     lines.append("=" * 60)
-    lines.append("TALENTGRAPH — RESULTS")
+    lines.append("TALENTGRAPH - RESULTS")
     lines.append("=" * 60)
 
     # -------------------------
@@ -46,14 +54,14 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
         lines.append("  No jobs found matching your filters.")
     else:
         for i, job in enumerate(per_job, 1):
-            lines.append(f"\n  #{i} — {job['title']} at {job['company']}")
+            lines.append(f"\n  #{i} - {job['title']} at {job['company']}")
             lines.append(f"       Match score : {job['match_score']}")
             lines.append(f"       Seniority   : {job['seniority']}")
             lines.append(
                 f"       You have    : {job['skills_matched'] if job['skills_matched'] else 'none matched'}"
             )
             lines.append(
-                f"       You're missing: {job['skills_missing'] if job['skills_missing'] else 'none — full match!'}"
+                f"       You're missing: {job['skills_missing'] if job['skills_missing'] else 'none - full match!'}"
             )
 
     # -------------------------
@@ -64,10 +72,10 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
 
     if missing_summary:
         for skill, count in missing_summary.items():
-            bar = "█" * count
+            bar = "#" * count
             lines.append(f"  {skill:<25} {bar} ({count}/{total_jobs} jobs)")
     else:
-        lines.append("  No skill gaps found — strong match!")
+        lines.append("  No skill gaps found - strong match!")
 
     # -------------------------
     # Actionable recommendation
@@ -91,7 +99,10 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     # Join all lines into final output string
     final_output = "\n".join(lines)
 
-    # Print it
-    print(final_output)
+    # Print safely
+    try:
+        print(final_output)
+    except UnicodeEncodeError:
+        print(final_output.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(sys.stdout.encoding or "utf-8"))
 
     return {**state, "final_output": final_output}

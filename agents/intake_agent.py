@@ -1,8 +1,12 @@
+from dotenv import load_dotenv
+import os
+import json
+import re
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from agents.state import TalentGraphState
-import json
-import re
+
+load_dotenv()
 
 # Prompt template for parsing user query
 INTAKE_PROMPT = ChatPromptTemplate.from_template("""
@@ -31,13 +35,24 @@ def intake_agent(state: TalentGraphState) -> TalentGraphState:
     print("\n[ INTAKE AGENT ] Parsing user query...")
     print(f"  Query: {state['user_query']}")
 
-    # Initialize the LLM
-    llm = ChatOllama(model="qwen2:7b")
+    # Initialize the LLM dynamically from environment
+    model_name = os.getenv("OLLAMA_MODEL", "qwen2:7b")
+
+    llm = ChatOllama(
+        model=model_name,
+        temperature=0
+    )
     chain = INTAKE_PROMPT | llm
 
     # Run the chain
     response = chain.invoke({"query": state["user_query"]})
-    raw = response.content.strip()
+    if isinstance(response.content, list):
+        raw = "".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in response.content
+        ).strip()
+    else:
+        raw = str(response.content).strip()
 
     # Parse JSON safely
     try:
