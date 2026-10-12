@@ -1,23 +1,25 @@
 from collections import Counter
 from agents.state import TalentGraphState
+from agents.tracer import get_tracer
 from retrieval.gap_analysis import extract_resume_skills, load_resume_text
 
 
 def analysis_agent(state: TalentGraphState) -> TalentGraphState:
-    """
-    Reads retrieved_jobs and resume_path from state.
-    Runs gap analysis — compares resume skills against job requirements.
-    Writes structured gap_analysis dict back to state.
-    """
-
     print("\n[ ANALYSIS AGENT ] Running gap analysis...")
+
+    tracer = get_tracer()
+    span = tracer.span(
+        trace_id=state.get("trace_id"),
+        name="analysis-agent",
+        input={"jobs_count": len(state.get("retrieved_jobs") or [])}
+    )
 
     jobs = state.get("retrieved_jobs") or []
     resume_path = state.get("resume_path", "data/NISHITH_KASHIMALLA_CV.pdf")
 
-    # Handle edge case — no jobs to analyze
     if not jobs:
         print("  No jobs to analyze. Skipping.")
+        span.end(output={"total_jobs_analyzed": 0})
         return {
             **state,
             "gap_analysis": {
@@ -28,12 +30,10 @@ def analysis_agent(state: TalentGraphState) -> TalentGraphState:
             }
         }
 
-    # Step 1: Extract resume skills
     resume_text = load_resume_text(resume_path)
     resume_skills = extract_resume_skills(resume_text)
     print(f"  Resume skills  : {sorted(resume_skills)}")
 
-    # Step 2: Per-job gap analysis
     per_job_results = []
     missing_counter = Counter()
 
@@ -59,8 +59,8 @@ def analysis_agent(state: TalentGraphState) -> TalentGraphState:
         print(f"    Matched : {sorted(matched) if matched else 'none'}")
         print(f"    Missing : {sorted(missing) if missing else 'none'}")
 
-    # Step 3: Build summary of most common missing skills
     missing_skills_summary = dict(missing_counter.most_common(10))
+    print(f"\n  Most common gaps: {missing_skills_summary}")
 
     gap_analysis = {
         "resume_skills": sorted(resume_skills),
@@ -69,6 +69,9 @@ def analysis_agent(state: TalentGraphState) -> TalentGraphState:
         "total_jobs_analyzed": len(per_job_results)
     }
 
-    print(f"\n  Most common gaps: {missing_skills_summary}")
+    span.end(output={
+        "total_jobs_analyzed": len(per_job_results),
+        "missing_skills_summary": missing_skills_summary
+    })
 
     return {**state, "gap_analysis": gap_analysis}

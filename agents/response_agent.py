@@ -1,22 +1,16 @@
-import sys
 from agents.state import TalentGraphState
+from agents.tracer import get_tracer
 
 
 def response_agent(state: TalentGraphState) -> TalentGraphState:
-    """
-    Reads gap_analysis, filters, and critique_feedback from state.
-    Formats everything into a clean, human-readable final report.
-    Writes final_output back to state.
-    """
-
     print("\n[ RESPONSE AGENT ] Formatting final output...")
 
-    # Ensure stdout handles encoding safely on Windows
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
+    tracer = get_tracer()
+    span = tracer.span(
+        trace_id=state.get("trace_id"),
+        name="response-agent",
+        input={"total_jobs": state.get("gap_analysis", {}).get("total_jobs_analyzed")}
+    )
 
     gap_analysis = state.get("gap_analysis") or {}
     filters = state.get("filters") or {}
@@ -26,17 +20,10 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     total_jobs = gap_analysis.get("total_jobs_analyzed") or 0
 
     lines = []
-
-    # -------------------------
-    # Header
-    # -------------------------
     lines.append("=" * 60)
-    lines.append("TALENTGRAPH - RESULTS")
+    lines.append("TALENTGRAPH — RESULTS")
     lines.append("=" * 60)
 
-    # -------------------------
-    # Search summary
-    # -------------------------
     lines.append("\nSEARCH FILTERS")
     lines.append(f"  Seniority      : {filters.get('seniority') or 'any'}")
     lines.append(f"  Location       : {filters.get('location') or 'any'}")
@@ -44,9 +31,6 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     lines.append(f"  Jobs analyzed  : {total_jobs}")
     lines.append(f"  Critique       : {critique_feedback}")
 
-    # -------------------------
-    # Per job breakdown
-    # -------------------------
     lines.append("\nJOB MATCHES")
     lines.append("-" * 60)
 
@@ -54,55 +38,37 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
         lines.append("  No jobs found matching your filters.")
     else:
         for i, job in enumerate(per_job, 1):
-            lines.append(f"\n  #{i} - {job['title']} at {job['company']}")
+            lines.append(f"\n  #{i} — {job['title']} at {job['company']}")
             lines.append(f"       Match score : {job['match_score']}")
             lines.append(f"       Seniority   : {job['seniority']}")
-            lines.append(
-                f"       You have    : {job['skills_matched'] if job['skills_matched'] else 'none matched'}"
-            )
-            lines.append(
-                f"       You're missing: {job['skills_missing'] if job['skills_missing'] else 'none - full match!'}"
-            )
+            lines.append(f"       You have    : {job['skills_matched'] if job['skills_matched'] else 'none matched'}")
+            lines.append(f"       You're missing: {job['skills_missing'] if job['skills_missing'] else 'none — full match!'}")
 
-    # -------------------------
-    # Skill gap summary
-    # -------------------------
     lines.append("\nSKILL GAP SUMMARY")
     lines.append("-" * 60)
 
     if missing_summary:
         for skill, count in missing_summary.items():
-            bar = "#" * count
+            bar = "█" * count
             lines.append(f"  {skill:<25} {bar} ({count}/{total_jobs} jobs)")
     else:
-        lines.append("  No skill gaps found - strong match!")
+        lines.append("  No skill gaps found — strong match!")
 
-    # -------------------------
-    # Actionable recommendation
-    # -------------------------
     lines.append("\nRECOMMENDATION")
     lines.append("-" * 60)
 
     if missing_summary:
         top_gaps = list(missing_summary.keys())[:3]
-        lines.append(
-            f"  Focus on: {', '.join(top_gaps)}"
-        )
-        lines.append(
-            "  These skills appear most frequently across your top matched jobs."
-        )
+        lines.append(f"  Focus on: {', '.join(top_gaps)}")
+        lines.append("  These skills appear most frequently across your top matched jobs.")
     else:
         lines.append("  Your resume is a strong match for these roles.")
 
     lines.append("\n" + "=" * 60)
 
-    # Join all lines into final output string
     final_output = "\n".join(lines)
+    print(final_output)
 
-    # Print safely
-    try:
-        print(final_output)
-    except UnicodeEncodeError:
-        print(final_output.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(sys.stdout.encoding or "utf-8"))
+    span.end(output={"output_length": len(final_output)})
 
     return {**state, "final_output": final_output}

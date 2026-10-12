@@ -5,36 +5,30 @@ from agents.retrieval_agent import retrieval_agent
 from agents.analysis_agent import analysis_agent
 from agents.critique_agent import critique_agent, should_retry
 from agents.response_agent import response_agent
+from agents.tracer import get_tracer
 import sys
 
 
 def build_graph():
     """
-    Complete TalentGraph agent graph.
-    Week 3 Day 5: All 5 agents wired in with critique loop.
-
-    Flow:
-    intake → retrieval → analysis → critique → response
-                  ↑______________|  (if critique fails)
+    Builds and compiles the TalentGraph agent graph.
+    Complete 5-agent graph with critique retry loop.
     """
 
     graph = StateGraph(TalentGraphState)
 
-    # Add all nodes
     graph.add_node("intake", intake_agent)
     graph.add_node("retrieval", retrieval_agent)
     graph.add_node("analysis", analysis_agent)
     graph.add_node("critique", critique_agent)
     graph.add_node("response", response_agent)
 
-    # Fixed edges
     graph.set_entry_point("intake")
     graph.add_edge("intake", "retrieval")
     graph.add_edge("retrieval", "analysis")
     graph.add_edge("analysis", "critique")
     graph.add_edge("response", END)
 
-    # Conditional edge — critique routes to response or loops to retrieval
     graph.add_conditional_edges(
         "critique",
         should_retry,
@@ -48,29 +42,59 @@ def build_graph():
 
 
 if __name__ == "__main__":
-    app = build_graph()
+    query = " ".join(sys.argv[1:-1]) if len(sys.argv) > 2 else \
+            sys.argv[1] if len(sys.argv) == 2 else \
+            "find me Python developer roles"
 
-    # Accept query from command line or use default
-    if len(sys.argv) > 1:
-        query = " ".join(sys.argv[1:])
-    else:
-        query = "find me junior Python developer roles in Bangalore with Django"
+    resume_file = sys.argv[-1] if len(sys.argv) > 2 and sys.argv[-1].endswith(".pdf") \
+                  else "NISHITH_KASHIMALLA_CV.pdf"
+
+    resume_path = f"data/{resume_file}"
+
+    # Create one Langfuse trace for this entire run
+    tracer = get_tracer()
+    trace = tracer.trace(
+        name="talentgraph-run",
+        input={"query": query, "resume": resume_path},
+        metadata={"source": "cli"}
+    )
+
+    app = build_graph()
 
     initial_state = {
         "user_query": query,
-        "resume_path": "data/NISHITH_KASHIMALLA_CV.pdf",
+        "resume_path": resume_path,
         "filters": None,
+        "original_filters": None,
         "retrieved_jobs": None,
         "gap_analysis": None,
         "critique_passed": None,
         "critique_feedback": None,
         "retry_count": 0,
-        "final_output": None
+        "final_output": None,
+        "trace_id": trace.id   # pass trace ID into state
     }
 
-    print(f"\nQuery: '{query}'")
-    print("Running TalentGraph agent graph...\n")
+    print(f"\nQuery      : '{query}'")
+    print(f"Resume     : {resume_path}")
+    print(f"Trace ID   : {trace.id}")
+    print("Running TalentGraph...\n")
+
     result = app.invoke(initial_state)
 
-    print(f"\nRetry count : {result['retry_count']}")
-    print(f"Critique    : {result['critique_feedback']}")
+    # Update the trace with the final output
+    trace.update(
+        output={"final_output": result.get("final_output")},
+        metadata={
+            "retry_count": result.get("retry_count"),
+            "critique_feedback": result.get("critique_feedback"),
+            "jobs_analyzed": result.get("gap_analysis", {}).get("total_jobs_analyzed")
+        }
+    )
+
+    # Flush ensures all data is sent before the script exits
+    tracer.flush()
+
+    print(f"\nRetry count: {result['retry_count']}")
+    print(f"Critique   : {result['critique_feedback']}")
+    print(f"Trace logged to Langfuse: {trace.id}")

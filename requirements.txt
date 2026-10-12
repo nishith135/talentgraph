@@ -28,3 +28,6 @@ pydantic
 
 #ragas
 ragas
+
+# Observability
+langfuse<3
