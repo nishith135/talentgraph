@@ -28,3 +28,6 @@ class TalentGraphState(TypedDict):
 
     # Set by the Response Agent
     final_output: Optional[str]
+
+    # Langfuse trace ID — passed through state so all agents log to same trace
+    trace_id: Optional[str]
