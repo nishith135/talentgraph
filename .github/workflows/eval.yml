@@ -22,6 +22,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install and start Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          for i in {1..10}; do
+            ollama list && break || sleep 1
+          done
+          ollama pull qwen2:7b
+
       - name: Run eval harness
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
