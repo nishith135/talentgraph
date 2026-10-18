@@ -10,7 +10,7 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
         trace_id=state.get("trace_id"),
         name="response-agent",
         input={"total_jobs": state.get("gap_analysis", {}).get("total_jobs_analyzed")}
-    )
+    ) if (tracer and hasattr(tracer, "span")) else None
 
     gap_analysis = state.get("gap_analysis") or {}
     filters = state.get("filters") or {}
@@ -69,6 +69,7 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     final_output = "\n".join(lines)
     print(final_output)
 
-    span.end(output={"output_length": len(final_output)})
+    if span:
+        span.end(output={"output_length": len(final_output)})
 
     return {**state, "final_output": final_output}

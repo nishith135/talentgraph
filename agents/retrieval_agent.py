@@ -14,7 +14,7 @@ def retrieval_agent(state: TalentGraphState) -> TalentGraphState:
         trace_id=state.get("trace_id"),
         name="retrieval-agent",
         input={"filters": state.get("filters")}
-    )
+    ) if (tracer and hasattr(tracer, "span")) else None
 
     filters = state.get("filters") or {}
     seniority = filters.get("seniority")
@@ -49,11 +49,12 @@ def retrieval_agent(state: TalentGraphState) -> TalentGraphState:
     if not filtered_jobs:
         print("  Warning: No jobs matched the filters.")
 
-    span.end(output={
-        "jobs_retrieved": len(filtered_jobs),
-        "total_searched": len(all_jobs),
-        "search_text": search_text
-    })
+    if span:
+        span.end(output={
+            "jobs_retrieved": len(filtered_jobs),
+            "total_searched": len(all_jobs),
+            "search_text": search_text
+        })
 
     return {**state, "retrieved_jobs": filtered_jobs}
 

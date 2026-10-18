@@ -32,7 +32,7 @@ def intake_agent(state: TalentGraphState) -> TalentGraphState:
         trace_id=state.get("trace_id"),
         name="intake-agent",
         input={"query": state["user_query"]}
-    )
+    ) if (tracer and hasattr(tracer, "span")) else None
 
     llm = ChatOllama(model="qwen2:7b")
     chain = INTAKE_PROMPT | llm
@@ -50,6 +50,7 @@ def intake_agent(state: TalentGraphState) -> TalentGraphState:
     print(f"  Filters extracted: {filters}")
 
     # End the span with output
-    span.end(output={"filters": filters})
+    if span:
+        span.end(output={"filters": filters})
 
     return {**state, "filters": filters, "original_filters": filters}

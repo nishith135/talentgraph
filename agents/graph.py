@@ -57,7 +57,7 @@ if __name__ == "__main__":
         name="talentgraph-run",
         input={"query": query, "resume": resume_path},
         metadata={"source": "cli"}
-    )
+    ) if (tracer and hasattr(tracer, "trace")) else None
 
     app = build_graph()
 
@@ -72,29 +72,33 @@ if __name__ == "__main__":
         "critique_feedback": None,
         "retry_count": 0,
         "final_output": None,
-        "trace_id": trace.id   # pass trace ID into state
+        "trace_id": trace.id if trace else None   # pass trace ID into state
     }
 
     print(f"\nQuery      : '{query}'")
     print(f"Resume     : {resume_path}")
-    print(f"Trace ID   : {trace.id}")
+    if trace:
+        print(f"Trace ID   : {trace.id}")
     print("Running TalentGraph...\n")
 
     result = app.invoke(initial_state)
 
     # Update the trace with the final output
-    trace.update(
-        output={"final_output": result.get("final_output")},
-        metadata={
-            "retry_count": result.get("retry_count"),
-            "critique_feedback": result.get("critique_feedback"),
-            "jobs_analyzed": result.get("gap_analysis", {}).get("total_jobs_analyzed")
-        }
-    )
+    if trace:
+        trace.update(
+            output={"final_output": result.get("final_output")},
+            metadata={
+                "retry_count": result.get("retry_count"),
+                "critique_feedback": result.get("critique_feedback"),
+                "jobs_analyzed": result.get("gap_analysis", {}).get("total_jobs_analyzed")
+            }
+        )
 
     # Flush ensures all data is sent before the script exits
-    tracer.flush()
+    if tracer and hasattr(tracer, "flush"):
+        tracer.flush()
 
     print(f"\nRetry count: {result['retry_count']}")
     print(f"Critique   : {result['critique_feedback']}")
-    print(f"Trace logged to Langfuse: {trace.id}")
+    if trace:
+        print(f"Trace logged to Langfuse: {trace.id}")

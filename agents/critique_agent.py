@@ -17,7 +17,7 @@ def critique_agent(state: TalentGraphState) -> TalentGraphState:
             "total_jobs": state.get("gap_analysis", {}).get("total_jobs_analyzed"),
             "retry_count": state.get("retry_count")
         }
-    )
+    ) if (tracer and hasattr(tracer, "span")) else None
 
     gap_analysis = state.get("gap_analysis") or {}
     retry_count = state.get("retry_count") or 0
@@ -26,7 +26,8 @@ def critique_agent(state: TalentGraphState) -> TalentGraphState:
 
     if retry_count >= MAX_RETRIES:
         print(f"  Max retries ({MAX_RETRIES}) reached. Passing forward.")
-        span.end(output={"passed": True, "reason": "max_retries_reached"})
+        if span:
+            span.end(output={"passed": True, "reason": "max_retries_reached"})
         return {
             **state,
             "critique_passed": True,
@@ -36,7 +37,8 @@ def critique_agent(state: TalentGraphState) -> TalentGraphState:
     if total_jobs < MIN_JOBS_REQUIRED:
         feedback = f"Only {total_jobs} job(s) retrieved. Loosening filters and retrying."
         print(f"  Failed: {feedback}")
-        span.end(output={"passed": False, "reason": "insufficient_jobs"})
+        if span:
+            span.end(output={"passed": False, "reason": "insufficient_jobs"})
         return {
             **state,
             "critique_passed": False,
@@ -51,7 +53,8 @@ def critique_agent(state: TalentGraphState) -> TalentGraphState:
     if avg_score < MIN_MATCH_SCORE:
         feedback = f"Average match score {avg_score} below threshold. Retrying."
         print(f"  Failed: {feedback}")
-        span.end(output={"passed": False, "reason": "low_match_scores", "avg_score": avg_score})
+        if span:
+            span.end(output={"passed": False, "reason": "low_match_scores", "avg_score": avg_score})
         return {
             **state,
             "critique_passed": False,
@@ -61,7 +64,8 @@ def critique_agent(state: TalentGraphState) -> TalentGraphState:
         }
 
     print(f"  Passed: {total_jobs} jobs retrieved, average match score {avg_score}")
-    span.end(output={"passed": True, "avg_score": avg_score, "total_jobs": total_jobs})
+    if span:
+        span.end(output={"passed": True, "avg_score": avg_score, "total_jobs": total_jobs})
     return {
         **state,
         "critique_passed": True,

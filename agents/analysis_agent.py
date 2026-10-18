@@ -12,14 +12,15 @@ def analysis_agent(state: TalentGraphState) -> TalentGraphState:
         trace_id=state.get("trace_id"),
         name="analysis-agent",
         input={"jobs_count": len(state.get("retrieved_jobs") or [])}
-    )
+    ) if (tracer and hasattr(tracer, "span")) else None
 
     jobs = state.get("retrieved_jobs") or []
     resume_path = state.get("resume_path", "data/NISHITH_KASHIMALLA_CV.pdf")
 
     if not jobs:
         print("  No jobs to analyze. Skipping.")
-        span.end(output={"total_jobs_analyzed": 0})
+        if span:
+            span.end(output={"total_jobs_analyzed": 0})
         return {
             **state,
             "gap_analysis": {
@@ -69,9 +70,10 @@ def analysis_agent(state: TalentGraphState) -> TalentGraphState:
         "total_jobs_analyzed": len(per_job_results)
     }
 
-    span.end(output={
-        "total_jobs_analyzed": len(per_job_results),
-        "missing_skills_summary": missing_skills_summary
-    })
+    if span:
+        span.end(output={
+            "total_jobs_analyzed": len(per_job_results),
+            "missing_skills_summary": missing_skills_summary
+        })
 
     return {**state, "gap_analysis": gap_analysis}
