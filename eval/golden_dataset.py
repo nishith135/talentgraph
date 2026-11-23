@@ -162,5 +162,57 @@ GOLDEN_DATASET = [
         "expected_critique_pass": True,
         "expected_gaps": [],
         "expected_retry_count": 1
+    },
+
+    # -------------------------
+    # TAILORING AGENT PURITY CASES
+    # -------------------------
+    {
+        "id": "TC011",
+        "notes": "Tailoring purity test — ensures missing skills (django, postgresql) are never written into tailored resume",
+        "query": "find me junior Python developer roles in Bangalore with Django",
+        "expected_filters": {
+            "seniority": "junior",
+            "location": "Bangalore",
+            "required_skills": ["python", "django"]
+        },
+        "expected_min_jobs": 2,
+        "expected_critique_pass": True,
+        "expected_gaps": ["django", "postgresql"],
+        "expected_retry_count": 0,
+        "check_tailoring": True,
+        "forbidden_skills": ["django", "postgresql"]
+    },
+    {
+        "id": "TC012",
+        "notes": "Tailoring purity test — ensures unheld skills (django, unity, postgresql) absent from base resume are not hallucinated",
+        "query": "find me Python developer roles in Bangalore",
+        "expected_filters": {
+            "seniority": None,
+            "location": "Bangalore",
+            "required_skills": ["python"]
+        },
+        "expected_min_jobs": 2,
+        "expected_critique_pass": True,
+        "expected_gaps": [],
+        "expected_retry_count": 0,
+        "check_tailoring": True,
+        "forbidden_skills": ["django", "unity", "postgresql"]
+    },
+    {
+        "id": "TC013",
+        "notes": "Tailoring purity test — senior Python roles, ensures missing skills (azure, redis, unity) are reported only as gaps",
+        "query": "find me senior Python developer roles in Bangalore",
+        "expected_filters": {
+            "seniority": "senior",
+            "location": "Bangalore",
+            "required_skills": ["python"]
+        },
+        "expected_min_jobs": 2,
+        "expected_critique_pass": True,
+        "expected_gaps": [],
+        "expected_retry_count": 0,
+        "check_tailoring": True,
+        "forbidden_skills": ["django", "azure", "redis", "unity"]
     }
 ]

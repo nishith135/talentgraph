@@ -86,5 +86,5 @@ def _loosen_filters(filters: dict) -> dict:
 
 def should_retry(state: TalentGraphState) -> str:
     if state.get("critique_passed"):
-        return "response"
+        return "tailoring"
     return "retrieval"

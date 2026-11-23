@@ -13,13 +13,13 @@ Primary user: the author, job hunting for Python / backend / data / AI roles, ma
 - **Eval:** `eval/golden_dataset.py` (10 cases) + `eval/harness.py`. Currently **10/10, 40/40 checks**.
 - **Observability:** Langfuse tracing via `agents/tracer.py`, one trace per run, one span per agent.
 - **CI:** `.github/workflows/eval.yml` runs the eval harness on every push to main. Currently green.
-- **Skipped:** Ragas (dependency conflicts with the LangGraph stack). Do not attempt to reinstall it.
 
 ## Remaining work (strict priority order, do not add anything else)
 1. **Resume Tailoring Agent.** New node after Analysis and Critique, before Response. Inputs: base resume text, a job's description, and that job's matched/missing skills. Output: a tailored summary and reordered/reworded bullets per job. Rule: only reframe what is already true on the resume. Never invent skills or experience. Store the result in state (e.g. `tailored_resumes`) and show it in the Response output.
 2. **Fresh job data.** Add a scheduled GitHub Actions workflow (cron, daily) that runs `python -m pipeline` so the DB stays current. Retrieval keeps querying the pre-embedded DB; do not fetch and embed live on every query.
 3. **Eval for the new agent.** Add 2–3 golden cases that check the tailoring output does not contain skills absent from the base resume. Harness must stay at full pass.
 4. **README update.** Reflect the real state and the tailoring agent. Keep the built vs planned split.
+4b. Minimal FastAPI wrapper (GET /health, POST /run) so a UI can call the graph.
 5. **Stretch, only if everything above is done:** Application Agent (email-based apply first; Playwright only if time remains).
 
 ## Hard constraints

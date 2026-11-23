@@ -64,6 +64,20 @@ def response_agent(state: TalentGraphState) -> TalentGraphState:
     else:
         lines.append("  Your resume is a strong match for these roles.")
 
+    tailored_resumes = state.get("tailored_resumes") or []
+    if tailored_resumes:
+        lines.append("\nTAILORED RESUMES (TOP MATCHES)")
+        lines.append("-" * 60)
+        for i, tr in enumerate(tailored_resumes, 1):
+            lines.append(f"\n  #{i} — {tr.get('job_title', 'Role')} at {tr.get('company', 'Company')}")
+            lines.append(f"       Tailored Summary : {tr.get('tailored_summary', '')}")
+            lines.append("       Tailored Bullets :")
+            for bullet in tr.get("tailored_bullets", []):
+                lines.append(f"         • {bullet}")
+            gaps = tr.get("skill_gaps", [])
+            if gaps:
+                lines.append(f"       Identified Gaps  : {', '.join(gaps)}")
+
     lines.append("\n" + "=" * 60)
 
     final_output = "\n".join(lines)

@@ -34,7 +34,7 @@ def intake_agent(state: TalentGraphState) -> TalentGraphState:
         input={"query": state["user_query"]}
     ) if (tracer and hasattr(tracer, "span")) else None
 
-    llm = ChatOllama(model="qwen2:7b")
+    llm = ChatOllama(model="qwen2:7b", temperature=0.0)
     chain = INTAKE_PROMPT | llm
 
     response = chain.invoke({"query": state["user_query"]})

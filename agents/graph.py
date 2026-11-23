@@ -4,6 +4,7 @@ from agents.intake_agent import intake_agent
 from agents.retrieval_agent import retrieval_agent
 from agents.analysis_agent import analysis_agent
 from agents.critique_agent import critique_agent, should_retry
+from agents.tailoring_agent import tailoring_agent
 from agents.response_agent import response_agent
 from agents.tracer import get_tracer
 import sys
@@ -21,12 +22,14 @@ def build_graph():
     graph.add_node("retrieval", retrieval_agent)
     graph.add_node("analysis", analysis_agent)
     graph.add_node("critique", critique_agent)
+    graph.add_node("tailoring", tailoring_agent)
     graph.add_node("response", response_agent)
 
     graph.set_entry_point("intake")
     graph.add_edge("intake", "retrieval")
     graph.add_edge("retrieval", "analysis")
     graph.add_edge("analysis", "critique")
+    graph.add_edge("tailoring", "response")
     graph.add_edge("response", END)
 
     graph.add_conditional_edges(
@@ -34,7 +37,7 @@ def build_graph():
         should_retry,
         {
             "retrieval": "retrieval",
-            "response": "response"
+            "tailoring": "tailoring"
         }
     )
 
@@ -71,6 +74,7 @@ if __name__ == "__main__":
         "critique_passed": None,
         "critique_feedback": None,
         "retry_count": 0,
+        "tailored_resumes": None,
         "final_output": None,
         "trace_id": trace.id if trace else None   # pass trace ID into state
     }

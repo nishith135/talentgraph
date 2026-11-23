@@ -26,6 +26,9 @@ class TalentGraphState(TypedDict):
     critique_feedback: Optional[str]
     retry_count: Optional[int]
 
+    # Set by the Tailoring Agent
+    tailored_resumes: Optional[list]
+
     # Set by the Response Agent
     final_output: Optional[str]
 

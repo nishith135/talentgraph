@@ -11,6 +11,11 @@ and scores the results across four dimensions:
 
 from agents.graph import build_graph
 from eval.golden_dataset import GOLDEN_DATASET
+import re
+import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
 
 
 def run_single_test(app, test_case: dict) -> dict:
@@ -29,6 +34,7 @@ def run_single_test(app, test_case: dict) -> dict:
         "critique_passed": None,
         "critique_feedback": None,
         "retry_count": 0,
+        "tailored_resumes": None,
         "final_output": None
     }
 
@@ -95,9 +101,38 @@ def run_single_test(app, test_case: dict) -> dict:
         retry_passed = actual_retry == test_case["expected_retry_count"]
 
     # -------------------------
+    # Check 5: Tailoring skill purity (if check_tailoring is True)
+    # -------------------------
+    tailoring_checked = bool(test_case.get("check_tailoring"))
+    tailoring_passed = True
+    if tailoring_checked:
+        tailored_resumes = result.get("tailored_resumes") or []
+        tailoring_passed = len(tailored_resumes) > 0
+        forbidden_skills = set(s.lower() for s in test_case.get("forbidden_skills", []))
+        for tr in tailored_resumes:
+            combined_text = (
+                (tr.get("tailored_summary") or "") + " " + " ".join(tr.get("tailored_bullets") or [])
+            ).lower()
+            gaps = set(s.lower() for s in tr.get("skill_gaps") or [])
+            all_forbidden = forbidden_skills.union(gaps)
+            for skill in all_forbidden:
+                if re.search(rf"\b{re.escape(skill)}\b", combined_text):
+                    print(f"  FAIL: Absent skill '{skill}' detected in tailored text for {tr.get('job_title')}")
+                    tailoring_passed = False
+                    break
+            if not tailoring_passed:
+                break
+
+    # -------------------------
     # Compile result
     # -------------------------
-    checks_passed = sum([filter_passed, job_count_passed, gap_passed, retry_passed])
+    checks_list = [filter_passed, job_count_passed, gap_passed, retry_passed]
+    total_checks = 4
+    if tailoring_checked:
+        checks_list.append(tailoring_passed)
+        total_checks = 5
+
+    checks_passed = sum(checks_list)
 
     return {
         "id": test_case["id"],
@@ -107,8 +142,10 @@ def run_single_test(app, test_case: dict) -> dict:
         "job_count_passed": job_count_passed,
         "gap_passed": gap_passed,
         "retry_passed": retry_passed,
+        "tailoring_checked": tailoring_checked,
+        "tailoring_passed": tailoring_passed,
         "checks_passed": checks_passed,
-        "total_checks": 4,
+        "total_checks": total_checks,
         "actual_jobs": actual_jobs,
         "actual_retry": actual_retry,
         "actual_gaps": list(actual_gap_skills),
@@ -142,6 +179,9 @@ def run_eval_harness():
             ("Gaps", result["gap_passed"]),
             ("Retries", result["retry_passed"])
         ]
+        if result.get("tailoring_checked"):
+            checks.append(("Tailoring purity", result["tailoring_passed"]))
+
         for name, passed in checks:
             status = "✓" if passed else "✗"
             print(f"    {status} {name}")
@@ -175,6 +215,8 @@ def run_eval_harness():
                 failed_checks.append("Gaps")
             if not r["retry_passed"]:
                 failed_checks.append("Retries")
+            if r.get("tailoring_checked") and not r["tailoring_passed"]:
+                failed_checks.append("Tailoring purity")
             print(f"    {r['id']} — failed: {', '.join(failed_checks)}")
             print(f"    Query: {r['query']}")
             print(f"    Actual jobs: {r['actual_jobs']}, retries: {r['actual_retry']}")

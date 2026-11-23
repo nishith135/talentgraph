@@ -81,7 +81,7 @@ Embed → sentence-transformers (all-MiniLM-L6-v2)
 Store in pgvector
 ```
 
-### Layer 2 — Agent graph (current: intelligence | coming: action)
+### Layer 2 — Agent graph (multi-agent orchestration with LangGraph)
 
 ```
 "find me junior Python roles in Bangalore with Django"
@@ -101,20 +101,19 @@ Store in pgvector
         Quality check — too few results or low scores → loosen filters → retry
                     ↑___________________________|
                     ↓ (passed)
+        [ Resume Tailoring Agent ]
+        Rewrites resume summary + bullets per matched role (top 3)
+        Strict anti-hallucination: reframes existing resume content only
+                    ↓
         [ Response Agent ]
-        Gap report with bar chart + recommendation
+        Gap report with frequency ranking, bar charts, and tailored resumes
 
         ↓ ↓ ↓ COMING NEXT ↓ ↓ ↓
 
-        [ Resume Tailoring Agent ]
-        Rewrites resume summary + bullets to match each specific role
-        Different version per application — no generic blasting
-                    ↓
         [ Application Agent ]
         Submits via email / Playwright browser automation
-                    ↓
         [ Report Agent ]
-        Summary of what was applied to, match scores, tailoring decisions
+        Summary of submissions and outcomes
 ```
 
 The critique loop is what makes the current system a proper multi-agent setup — not just a chain of functions. It self-corrects before showing results. The same principle applies to the application layer: no application gets submitted without passing a quality gate first.
@@ -133,6 +132,7 @@ Supabase                 — Postgres + vector store hosting
 Pydantic                 — schema validation on every agent output
 pdfplumber               — resume PDF text extraction
 Ollama (qwen2:7b)        — local LLM for query parsing and tailoring
+FastAPI & Uvicorn        — backend API server with CORS for UI integration
 Adzuna API               — live job postings (more sources coming)
 Playwright               — browser automation for form-based applications (coming)
 ```
@@ -159,7 +159,7 @@ SUPABASE_KEY=your_key
 # Fetch and process jobs
 python -m pipeline
 
-# Run a query
+# Run a query from CLI
 python -m agents.cli "find me junior Python developer roles in Bangalore with Django"
 
 # Use your own resume
@@ -167,17 +167,20 @@ python -m agents.cli "find me Python roles in Bangalore" myresume.pdf
 
 # Run the eval harness
 python -m eval.harness
+
+# Start FastAPI backend server
+uvicorn api.main:app --reload
 ```
 
 ---
 
 ## Eval harness
 
-Every change is tested against a 10-case golden dataset before it's trusted. The harness measures filter accuracy, retrieval count, gap detection, and retry behavior per test case.
+Every change is tested against a 13-case golden dataset before it's trusted. The harness measures filter accuracy, retrieval count, gap detection, retry behavior, and resume tailoring purity (asserting zero hallucinated or absent skills).
 
 ```
-Test cases : 10/10 passed
-Checks     : 40/40 passed
+Test cases : 13/13 passed
+Checks     : 55/55 passed
 Score      : 100%
 ```
 
@@ -190,21 +193,22 @@ The same eval infrastructure will gate the application layer — no resume gets 
 ### ✅ Built
 
 - Ingestion pipeline — fetch, normalize, deduplicate, Pydantic validation
+- Scheduled daily ingestion — GitHub Actions cron workflow (`.github/workflows/ingest.yml`)
 - ML extraction — zero-shot seniority, regex skill matching (100+ taxonomy)
 - pgvector semantic embeddings + hybrid retrieval
 - PDF resume parsing — skills extracted from SKILLS section only (no false positives)
 - Resume-to-JD semantic matching
 - Skill gap analysis — per job and aggregate with frequency ranking
-- 5-agent LangGraph graph with self-correcting critique retry loop
+- 6-agent LangGraph graph with self-correcting critique retry loop and tailoring
+- **Resume Tailoring Agent** — local Ollama `qwen2:7b` with strict anti-hallucination sanitization ensuring missing skills are reported as gaps and never written into the resume
+- **FastAPI backend API** — `GET /health` and `POST /run` (multipart query + PDF resume) with CORS enabled for UI consumption
 - CLI entry point
-- Eval harness — 10-case golden dataset, 100% pass rate (40/40 checks)
-- Ragas evaluation metrics *(in progress)*
-- Langfuse observability *(in progress)*
-- GitHub Actions CI gate *(in progress)*
+- Eval harness — 13-case golden dataset with tailoring purity assertions, 100% pass rate (55/55 checks)
+- Langfuse observability with tracing spans across all agents
+- GitHub Actions CI eval gate
 
 ### 🔜 Coming
 
-- **Resume Tailoring Agent** — rewrites resume summary and bullet points per role using the job description as context. No hallucination — only restructures and reframes what's already true on your resume
 - **Application Agent** — submits via email for postings with apply@ addresses; Playwright browser automation for form-based applications
 - **Multi-source ingestion** — RemoteOK, Jooble APIs alongside Adzuna
 - **Application tracking** — log of every submission with match score, tailoring decisions, and outcome
@@ -216,13 +220,15 @@ The same eval infrastructure will gate the application layer — no resume gets 
 
 ```
 talentgraph/
+  api/                 ← FastAPI backend (GET /health, POST /run)
   pipeline.py          ← ingestion entry point
   ingestion/           ← API fetch, normalize, database
   extraction/          ← skill taxonomy, extractor, Pydantic schemas
   retrieval/           ← embeddings, search, resume match, gap analysis
-  agents/              ← LangGraph state, 5 agents, graph, CLI
+  agents/              ← LangGraph state, agents (intake, retrieval, analysis, critique, tailoring, response), CLI
   eval/                ← golden dataset, harness
   data/                ← resume PDF (gitignored)
+  .github/workflows/   ← CI eval and daily ingestion workflows
 ```
 
 ---

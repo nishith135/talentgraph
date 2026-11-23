@@ -33,6 +33,7 @@ def main():
         "critique_passed": None,
         "critique_feedback": None,
         "retry_count": 0,
+        "tailored_resumes": None,
         "final_output": None,
         "trace_id": trace.id
     }
